@@ -10,6 +10,7 @@ ltable_path = '../'
 sys.path.append(ltable_path)
 from environments import blocks
 from environments import language_table
+from environments.rewards import block2block
 
 import utils
 
@@ -169,8 +170,6 @@ class CollectBCTrajs:
 
     def collect_human_demos(self):
         start_idx = len(self.custom_dataset.keys())
-        with open(INST_FILENAME, 'rb') as file:
-            instructions_list = pickle.load(file)
         num_trajs = int(input("Enter the number of trajs you want to record: \n"))
         
         ykey = ord('y')
@@ -180,9 +179,9 @@ class CollectBCTrajs:
         while count < num_trajs:
             keys = self.env._pybullet_client.getKeyboardEvents()
             
-            instruction = instructions_list[count + start_idx]
             if flag:
                 obs = self.env.reset()
+                instruction = self.env._instruction_str
                 print(f"\ninstruction: {instruction}")
                 print("press \"y\" to start recording trajectory or \"n\" to reset env \n")
                 flag = False
@@ -263,17 +262,21 @@ class CollectBCTrajs:
             self.env.step(action)
         return init_state
     
+    def test(self):
+        print("len: ", len(self.custom_dataset.keys()))
+    
 
 if __name__=="__main__":
     env = language_table.LanguageTable(
         block_mode=blocks.LanguageTableBlockVariants.BLOCK_4,
+        reward_factory=block2block.BlockToBlockReward ,
         control_frequency=10.0,
         render_mode="human"
     )
-    
     collect_trajs = CollectBCTrajs(env)
+    collect_trajs.test()
     # collect_trajs.clear_trajs()
-    collect_trajs.collect_human_demos()
+    # collect_trajs.collect_human_demos()
     # collect_trajs.playback_trajs(0)
     # collect_trajs.replace_traj(100)
     # collect_trajs.test()

@@ -52,7 +52,7 @@ class LanguageTableReward(object):
 
   def _get_translation_for_block(self, block, state):
     return np.array(self._get_pose_for_block(block, state)[0])
-
+  
   def _sample_object(self, blocks_on_table):
     """Choose one of the blocks randomly."""
     block = self._rng.choice(blocks_on_table)

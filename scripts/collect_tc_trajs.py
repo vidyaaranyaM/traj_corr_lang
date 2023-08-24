@@ -138,5 +138,5 @@ if __name__=="__main__":
     )
 
     collect_tc_trajs = CollectTCTrajs(env)
-    collect_tc_trajs.clear_tc_trajs()
+    # collect_tc_trajs.clear_tc_trajs()
     collect_tc_trajs.collect_trajs(num_trajs=2)

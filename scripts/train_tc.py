@@ -381,6 +381,6 @@ if __name__=="__main__":
     )
 
     traj_corr_obj = TrajCorr(env)
-    # traj_corr_obj.train_tc()
-    PRESENTATION_VIDEOS_FILENAME = "../videos/presentation"
-    traj_corr_obj.test_tc(0, video_file_path=PRESENTATION_VIDEOS_FILENAME)
+    traj_corr_obj.train_tc()
+    # PRESENTATION_VIDEOS_FILENAME = "../videos/presentation"
+    # traj_corr_obj.test_tc(0, video_file_path=PRESENTATION_VIDEOS_FILENAME)
