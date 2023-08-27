@@ -119,28 +119,20 @@ class CollectBCTrajs:
             store_data = True
             if self.env._pybullet_client.B3G_UP_ARROW in keys and self.env._pybullet_client.B3G_LEFT_ARROW in keys:
                 delta = np.array([-0.01, -0.01])
-                # print("up left")
             elif self.env._pybullet_client.B3G_UP_ARROW in keys and self.env._pybullet_client.B3G_RIGHT_ARROW in keys:
                 delta = np.array([-0.01, 0.01])
-                # print("up right")
             elif self.env._pybullet_client.B3G_DOWN_ARROW in keys and self.env._pybullet_client.B3G_LEFT_ARROW in keys:
                 delta = np.array([0.01, -0.01])
-                # print("down left")
             elif self.env._pybullet_client.B3G_DOWN_ARROW in keys and self.env._pybullet_client.B3G_RIGHT_ARROW in keys:
                 delta = np.array([0.01, 0.01])
-                # print("down right")
             elif self.env._pybullet_client.B3G_UP_ARROW in keys:
                 delta = np.array([-0.01, 0])
-                # print("up")
             elif self.env._pybullet_client.B3G_DOWN_ARROW in keys:
                 delta = np.array([0.01, 0])
-                # print("down")
             elif self.env._pybullet_client.B3G_LEFT_ARROW in keys:
                 delta = np.array([0, -0.01])
-                # print("left")
             elif self.env._pybullet_client.B3G_RIGHT_ARROW in keys:
                 delta = np.array([0, 0.01])
-                # print("right")
             elif dkey in keys and keys[dkey]&self.env._pybullet_client.KEY_WAS_TRIGGERED:
                 for _ in range(PAD_SA_LEN):
                     actions_list.append(utils.convert_deltas(np.array([0, 0])))
@@ -195,7 +187,9 @@ class CollectBCTrajs:
                         "init_state": init_state, 
                         "states": states,
                         "actions": actions,
-                        "instruction": instruction 
+                        "instruction": instruction,
+                        "start_block": self.env._reward_calculator._start_block,
+                        "target_block": self.env._reward_calculator._target_block,
                     }
                     self.custom_dataset["episode_" + str(count + start_idx)] = episode_dict
                     self.create_videos(frames, count + start_idx, instruction, BC_VIDEOS_FILENAME)
@@ -232,7 +226,9 @@ class CollectBCTrajs:
                         "init_state": init_state, 
                         "states": states,
                         "actions": actions,
-                        "instruction": instruction 
+                        "instruction": instruction, 
+                        "start_block": self.env._reward_calculator._start_block,
+                        "target_block": self.env._reward_calculator._target_block,
                     }
                     self.custom_dataset["episode_" + str(episode_num)] = episode_dict
                     self.create_videos(frames, episode_num, instruction, BC_VIDEOS_FILENAME)
@@ -262,9 +258,15 @@ class CollectBCTrajs:
             self.env.step(action)
         return init_state
     
-    def test(self):
-        print("len: ", len(self.custom_dataset.keys()))
-    
+    def delete_traj(self, episode_indices):
+        for idx in episode_indices:
+            episode = "episode_" + str(idx)
+            if episode in self.custom_dataset:
+                del self.custom_dataset[episode]
+            video_file = os.path.join(BC_VIDEOS_FILENAME, "demo" + str(idx) + ".mp4")
+            if os.path.exists(video_file):
+                os.remove(video_file)
+        self.save_trajs()
 
 if __name__=="__main__":
     env = language_table.LanguageTable(
@@ -274,9 +276,4 @@ if __name__=="__main__":
         render_mode="human"
     )
     collect_trajs = CollectBCTrajs(env)
-    collect_trajs.test()
-    # collect_trajs.clear_trajs()
-    # collect_trajs.collect_human_demos()
-    # collect_trajs.playback_trajs(0)
-    # collect_trajs.replace_traj(100)
-    # collect_trajs.test()
+    collect_trajs.collect_human_demos()
