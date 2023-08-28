@@ -28,18 +28,18 @@ DATASET_DIRS = {
     'language_table_blocktorelative_oracle_sim': 'gs://gresearch/robotics/language_table_blocktorelative_oracle_sim',
     'language_table_separate_oracle_sim': 'gs://gresearch/robotics/language_table_separate_oracle_sim',
 }
-INST_FILENAME = "../pickle_files/lang_inst.pickle"
-BC_DATA_FILENAME = "../pickle_files/bc_data.pickle"
-BC_VIDEOS_FILENAME = "../videos/bc_videos"
+BC_DATA_FILENAME = "../pickle_files/bc_data_one_task.pickle"
+BC_VIDEOS_FILENAME = "../videos/bc_videos/one_task"
 PAD_SA_LEN = 10
 SEED = 42
 EPS = 0.5
 
 
 class CollectBCTrajs:
-    def __init__(self, env, noise_injection) -> None:
+    def __init__(self, env, noise_injection=True, one_task=False) -> None:
         self.env = env
         self.noise_inj = noise_injection
+        self.one_task = one_task
         self.load_dataset()
         self.load_custom_dataset()
 
@@ -63,23 +63,6 @@ class CollectBCTrajs:
     
     def decode_inst(self, inst):
         return bytes(inst[np.where(inst != 0)].tolist()).decode("utf-8")
-    
-    def save_lang_instructions(self, num_episodes=None):
-        if not num_episodes:
-            num_episodes = len(self.ds)
-    
-        instructions_list = []
-        for iter, episode in enumerate(self.ds):
-            for step in episode['steps'].as_numpy_iterator():
-                instructions_list.append(self.decode_inst(step['observation']['instruction']))
-                break
-            if iter >= num_episodes - 1:
-                break
-
-            print("iter: ", iter)
-        
-        with open(INST_FILENAME, 'wb') as file:
-            pickle.dump(instructions_list, file)
 
     def create_videos(self, frames, idx, instruction, video_file_path):
         height, width, _ = frames[0].shape
@@ -171,7 +154,7 @@ class CollectBCTrajs:
                         states[block].append(block_pos_quat_np)
                 actions_list.append(action)
                 frames.append(obs['rgb'])
-            obs, rew, _, _ = self.env.step(delta)
+            obs, _, _, _ = self.env.step(delta)
 
     def collect_human_demos(self, replace=False, save_data=True):
         if not save_data:
@@ -186,7 +169,12 @@ class CollectBCTrajs:
         else:
             start_idx = len(self.custom_dataset.keys())
             num_trajs = int(input("Enter the number of trajs you want to record: \n"))
-        
+            if self.one_task:
+                start_block = "blue_cube"
+                target_block = "yellow_pentagon"
+                instruction =  self.env._reward_calculator._sample_instruction(start_block,
+                                                                              target_block,
+                                                                              self.env._blocks_on_table)
         ykey = ord('y')
         nkey = ord('n')
         count = 0
@@ -197,9 +185,10 @@ class CollectBCTrajs:
             if flag:
                 obs = self.env.reset()
                 if not replace:
-                    instruction = self.env._instruction_str
-                    start_block = self.env._reward_calculator._start_block
-                    target_block = self.env._reward_calculator._target_block
+                    if not self.one_task:
+                        instruction = self.env._instruction_str
+                        start_block = self.env._reward_calculator._start_block
+                        target_block = self.env._reward_calculator._target_block
                 print(f"\ninstruction: {instruction}")
                 print("press \"y\" to start recording trajectory or \"n\" to reset env \n")
                 flag = False
@@ -269,5 +258,5 @@ if __name__=="__main__":
         control_frequency=10.0,
         render_mode="human"
     )
-    collect_trajs = CollectBCTrajs(env, noise_injection=True)
-    collect_trajs.collect_human_demos(save_data=False)
+    collect_trajs = CollectBCTrajs(env, noise_injection=True, one_task=True)
+    collect_trajs.collect_human_demos(replace=False, save_data=True)
