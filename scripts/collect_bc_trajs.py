@@ -33,11 +33,13 @@ BC_DATA_FILENAME = "../pickle_files/bc_data.pickle"
 BC_VIDEOS_FILENAME = "../videos/bc_videos"
 PAD_SA_LEN = 10
 SEED = 42
+EPS = 0.5
 
 
 class CollectBCTrajs:
-    def __init__(self, env) -> None:
+    def __init__(self, env, noise_injection) -> None:
         self.env = env
+        self.noise_inj = noise_injection
         self.load_dataset()
         self.load_custom_dataset()
 
@@ -105,6 +107,17 @@ class CollectBCTrajs:
         video_dir = BC_VIDEOS_FILENAME
         for file in os.listdir(video_dir):
             os.remove(os.path.join(video_dir, file))
+    
+    def choose_delta_action(self, base_delta):
+        if self.noise_inj:
+            idx = utils.convert_deltas(base_delta).nonzero()[0][0]
+            p = np.random.random()
+            if p < EPS:
+                return utils.sample_delta(idx)
+            else:
+                return base_delta, utils.convert_deltas(base_delta)
+        else:
+            return base_delta, utils.convert_deltas(base_delta)
 
     def start_teleop(self, obs):
         dkey = ord('d')
@@ -118,21 +131,21 @@ class CollectBCTrajs:
 
             store_data = True
             if self.env._pybullet_client.B3G_UP_ARROW in keys and self.env._pybullet_client.B3G_LEFT_ARROW in keys:
-                delta = np.array([-0.01, -0.01])
+                delta, action = self.choose_delta_action(np.array([-0.01, -0.01]))
             elif self.env._pybullet_client.B3G_UP_ARROW in keys and self.env._pybullet_client.B3G_RIGHT_ARROW in keys:
-                delta = np.array([-0.01, 0.01])
+                delta, action = self.choose_delta_action(np.array([-0.01, 0.01]))
             elif self.env._pybullet_client.B3G_DOWN_ARROW in keys and self.env._pybullet_client.B3G_LEFT_ARROW in keys:
-                delta = np.array([0.01, -0.01])
+                delta, action = self.choose_delta_action(np.array([0.01, -0.01]))
             elif self.env._pybullet_client.B3G_DOWN_ARROW in keys and self.env._pybullet_client.B3G_RIGHT_ARROW in keys:
-                delta = np.array([0.01, 0.01])
+                delta, action = self.choose_delta_action(np.array([0.01, 0.01]))
             elif self.env._pybullet_client.B3G_UP_ARROW in keys:
-                delta = np.array([-0.01, 0])
+                delta, action = self.choose_delta_action(np.array([-0.01, 0]))
             elif self.env._pybullet_client.B3G_DOWN_ARROW in keys:
-                delta = np.array([0.01, 0])
+                delta, action = self.choose_delta_action(np.array([0.01, 0]))
             elif self.env._pybullet_client.B3G_LEFT_ARROW in keys:
-                delta = np.array([0, -0.01])
+                delta, action = self.choose_delta_action(np.array([0, -0.01]))
             elif self.env._pybullet_client.B3G_RIGHT_ARROW in keys:
-                delta = np.array([0, 0.01])
+                delta, action = self.choose_delta_action(np.array([0, 0.01]))
             elif dkey in keys and keys[dkey]&self.env._pybullet_client.KEY_WAS_TRIGGERED:
                 for _ in range(PAD_SA_LEN):
                     actions_list.append(utils.convert_deltas(np.array([0, 0])))
@@ -144,8 +157,8 @@ class CollectBCTrajs:
                 return False, None, None, None, None
             else:
                 delta = np.array([0, 0])
+                utils.convert_deltas(delta)
                 store_data = False
-            action = utils.convert_deltas(delta)
             if store_data:
                 states['effector_target_translation'].append(obs['effector_target_translation'])
                 for block in self.env._get_urdf_paths().keys():
@@ -158,11 +171,21 @@ class CollectBCTrajs:
                         states[block].append(block_pos_quat_np)
                 actions_list.append(action)
                 frames.append(obs['rgb'])
-            obs, _, _, _ = self.env.step(delta)
+            obs, rew, _, _ = self.env.step(delta)
 
-    def collect_human_demos(self):
-        start_idx = len(self.custom_dataset.keys())
-        num_trajs = int(input("Enter the number of trajs you want to record: \n"))
+    def collect_human_demos(self, replace=False, save_data=True):
+        if not save_data:
+            print("\nNote: You are not saving trajectories\n")
+        if replace:
+            episode_num = int(input("Enter the id of episode you want to replace:\n"))
+            episode = list(self.custom_dataset.values())[episode_num]
+            instruction = episode['instruction']
+            start_block = episode['start_block']
+            target_block = episode['target_block']
+            num_trajs = 1
+        else:
+            start_idx = len(self.custom_dataset.keys())
+            num_trajs = int(input("Enter the number of trajs you want to record: \n"))
         
         ykey = ord('y')
         nkey = ord('n')
@@ -173,7 +196,10 @@ class CollectBCTrajs:
             
             if flag:
                 obs = self.env.reset()
-                instruction = self.env._instruction_str
+                if not replace:
+                    instruction = self.env._instruction_str
+                    start_block = self.env._reward_calculator._start_block
+                    target_block = self.env._reward_calculator._target_block
                 print(f"\ninstruction: {instruction}")
                 print("press \"y\" to start recording trajectory or \"n\" to reset env \n")
                 flag = False
@@ -188,57 +214,24 @@ class CollectBCTrajs:
                         "states": states,
                         "actions": actions,
                         "instruction": instruction,
-                        "start_block": self.env._reward_calculator._start_block,
-                        "target_block": self.env._reward_calculator._target_block,
+                        "start_block": start_block,
+                        "target_block": target_block,
                     }
-                    self.custom_dataset["episode_" + str(count + start_idx)] = episode_dict
-                    self.create_videos(frames, count + start_idx, instruction, BC_VIDEOS_FILENAME)
+                    if save_data:
+                        if replace:
+                            self.custom_dataset["episode_" + str(episode_num)] = episode_dict
+                            self.create_videos(frames, episode_num, instruction, BC_VIDEOS_FILENAME)
+                        else:
+                            self.custom_dataset["episode_" + str(count + start_idx)] = episode_dict
+                            self.create_videos(frames, count + start_idx, instruction, BC_VIDEOS_FILENAME)
                     count += 1
 
             if nkey in keys and keys[nkey]&self.env._pybullet_client.KEY_WAS_TRIGGERED:
                 print("resetting the env")
                 flag = True
-        
-        self.save_trajs()
-    
-    def replace_traj(self, episode_num):
-        episode = list(self.custom_dataset.values())[episode_num]
-        instruction = episode['instruction']
-        ykey = ord('y')
-        nkey = ord('n')
-        count = 0
-        flag = True
-        while count < 1:
-            keys = self.env._pybullet_client.getKeyboardEvents()
-        
-            if flag:
-                obs = self.env.reset()
-                print(f"\ninstruction: {instruction}")
-                print("press \"y\" to start recording trajectory or \"n\" to reset env \n")
-                flag = False
-
-            if ykey in keys and keys[ykey]&self.env._pybullet_client.KEY_WAS_TRIGGERED:
-                print("start moving the robot \n")
-                flag = True
-                success, init_state, states, actions, frames = self.start_teleop(obs)
-                if success:
-                    episode_dict = {
-                        "init_state": init_state, 
-                        "states": states,
-                        "actions": actions,
-                        "instruction": instruction, 
-                        "start_block": self.env._reward_calculator._start_block,
-                        "target_block": self.env._reward_calculator._target_block,
-                    }
-                    self.custom_dataset["episode_" + str(episode_num)] = episode_dict
-                    self.create_videos(frames, episode_num, instruction, BC_VIDEOS_FILENAME)
-                    count += 1
-
-            if nkey in keys and keys[nkey]&self.env._pybullet_client.KEY_WAS_TRIGGERED:
-                print("resetting the env")
-                flag = True
-        
-        self.save_trajs()
+                
+        if save_data:
+            self.save_trajs()
 
     def playback_trajs(self, episode_num):
         self.load_custom_dataset()
@@ -267,6 +260,7 @@ class CollectBCTrajs:
             if os.path.exists(video_file):
                 os.remove(video_file)
         self.save_trajs()
+         
 
 if __name__=="__main__":
     env = language_table.LanguageTable(
@@ -275,5 +269,5 @@ if __name__=="__main__":
         control_frequency=10.0,
         render_mode="human"
     )
-    collect_trajs = CollectBCTrajs(env)
-    collect_trajs.collect_human_demos()
+    collect_trajs = CollectBCTrajs(env, noise_injection=True)
+    collect_trajs.collect_human_demos(save_data=False)

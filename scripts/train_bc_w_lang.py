@@ -15,6 +15,7 @@ ltable_path = '../'
 sys.path.append(ltable_path)
 from environments import blocks
 from environments import language_table
+from environments.rewards import block2block
 
 
 use_cuda = torch.cuda.is_available()
@@ -23,7 +24,7 @@ torch.manual_seed(42)
 
 
 BC_DATA_FILENAME = "../pickle_files/bc_data.pickle"
-POLICY_FILE_PATH = "../models/bc_policy/bc_policy_w_lang_200_512.pth"
+POLICY_FILE_PATH = "../models/bc_policy/bc_policy_w_lang_200_1024.pth"
 PRESENTATION_VIDEOS_FILENAME = "../videos/presentation"
 
 LLM_NAME = "distilbert-base-uncased"
@@ -61,15 +62,15 @@ class BCAgent(nn.Module):
             self.episode_num = "All Trajectories are considered"
 
         input_size = self.get_policy_input_size()
-        h1_size = 512
-        h2_size = 512
+        self.h1_size = 1024
+        self.h2_size = 1024
         output_size = 9
         self.policy = nn.Sequential(
-            nn.Linear(input_size, h1_size),
+            nn.Linear(input_size, self.h1_size),
             nn.ReLU(),
-            nn.Linear(h1_size, h2_size),
+            nn.Linear(self.h1_size, self.h2_size),
             nn.ReLU(),
-            nn.Linear(h2_size, output_size)
+            nn.Linear(self.h2_size, output_size)
         ).to(device)
         self.learning_rate = LEARNING_RATE
         self.loss = nn.CrossEntropyLoss()
@@ -184,6 +185,8 @@ class BCAgent(nn.Module):
                 "lr_multiplier": LR_MULTIPLIER,
                 "episode_num": self.episode_num,
                 "num_trajs": len(self.custom_ds.keys()),
+                "h1 size": self.h1_size,
+                "h2_size": self.h2_size,
             }
         )
 
@@ -257,7 +260,7 @@ class BCAgent(nn.Module):
         return correct / total
     
     def load_policy(self, policy_file):
-        self.policy.load_state_dict(torch.load(policy_file)) 
+        self.policy.load_state_dict(torch.load(policy_file, map_location=device)) 
 
     def get_state_tensor_replay(self, obs, instruction=None):
         state_tensor = torch.tensor(obs['effector_target_translation']).unsqueeze(0)
@@ -283,8 +286,10 @@ class BCAgent(nn.Module):
         if episode_num != None:
             episode = list(self.custom_ds.values())[episode_num]
             init_state = episode['init_state']
-            instruction = episode['instruction']
             self.env.set_pybullet_state(init_state)
+            self.env._instruction = instruction = episode['instruction']
+            self.env._reward_calculator._start_block = episode['start_block']
+            self.env._reward_calculator._target_block = episode['target_block']
             obs = self.env._compute_observation()
             print("instruction: ", instruction)
         else:
@@ -364,10 +369,12 @@ class BCAgent(nn.Module):
 if __name__=="__main__":
     env = language_table.LanguageTable(
         block_mode=blocks.LanguageTableBlockVariants.BLOCK_4,
+        reward_factory=block2block.BlockToBlockReward ,
         control_frequency=10.0,
         render_mode="human"
     )
 
     bc_agent = BCAgent(env, single_episode=False)
-    bc_agent.train()
-    # bc_agent.play_cloned_trajs(episode_num=132, video_file_path=PRESENTATION_VIDEOS_FILENAME)
+    # bc_agent.train()
+    bc_agent.play_cloned_trajs(episode_num=0)
+    

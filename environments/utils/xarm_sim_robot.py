@@ -19,11 +19,12 @@ from environments.utils.pose3d import Pose3d
 import numpy as np
 from scipy.spatial import transform
 import pybullet
+import os
 
 
 XARM_WHITE_URDF_PATH = ('third_party/bullet/examples/pybullet/gym/'
                         'pybullet_data/xarm/xarm6_robot_white.urdf')
-CYLINDER_REAL_URDF_PATH = '/home/weird-lab/traj_corr_lang/environments/assets/suction/cylinder_real.urdf'
+CYLINDER_REAL_URDF_PATH = os.path.join(os.getcwd(), "../environments/assets/suction/cylinder_real.urdf")
 HOME_JOINT_POSITIONS = np.deg2rad([0, -20, -80, 0, 100, -30])
 
 
@@ -185,3 +186,4 @@ class XArmSimRobot():
       rgba_color = list(rgba_color[0:3]) +  [alpha]
       self._pybullet_client.changeVisualShape(
           self.xarm, linkIndex=i, rgbaColor=rgba_color)
+      

@@ -1,0 +1,62 @@
+wandb_version: 1
+
+architecture:
+  desc: null
+  value: mlp
+init_lr:
+  desc: null
+  value: 0.001
+min_lr:
+  desc: null
+  value: 1.0e-06
+epochs:
+  desc: null
+  value: 50000
+batch_size:
+  desc: null
+  value: 32
+lr_multiplier:
+  desc: null
+  value: 0.9999
+episode_num:
+  desc: null
+  value: All Trajectories are considered
+num_trajs:
+  desc: null
+  value: 300
+_wandb:
+  desc: null
+  value:
+    python_version: 3.8.16
+    cli_version: 0.15.8
+    framework: huggingface
+    huggingface_version: 4.30.2
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1693178605.68989
+    t:
+      1:
+      - 1
+      - 2
+      - 3
+      - 11
+      - 12
+      - 49
+      - 55
+      2:
+      - 1
+      - 2
+      - 3
+      - 11
+      - 12
+      - 49
+      - 55
+      3:
+      - 2
+      - 16
+      - 23
+      4: 3.8.16
+      5: 0.15.8
+      6: 4.30.2
+      8:
+      - 5

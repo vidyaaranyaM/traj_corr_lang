@@ -18,6 +18,7 @@
 import math
 import numpy as np
 from scipy.spatial import transform
+import os
 
 PLANE_URDF_PATH = ('third_party/bullet/examples/pybullet/gym/pybullet_data/'
                    'plane.urdf')
@@ -39,7 +40,8 @@ ARM_DISTANCE_THRESHOLD = 0.06
 INSTRUCTION_LENGTH = 512  # max number of chars in instruction
 
 WORKSPACE_BOUNDS = np.array(((X_MIN, Y_MIN), (X_MAX, Y_MAX)))
-WORKSPACE_URDF_PATH = '/home/weird-lab/traj_corr_lang/environments/assets/workspace_real.urdf'
+WORKSPACE_URDF_PATH = os.path.join(os.getcwd(), '../environments/assets/workspace_real.urdf')
+
 CAMERA_POSE = (0.75, 0, 0.5)
 CAMERA_ORIENTATION = (np.pi / 5, np.pi, -np.pi / 2)
 

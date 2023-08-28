@@ -1,0 +1,34 @@
+
+num episodes:  300
+Traceback (most recent call last):
+  File "train_bc_w_lang.py", line 372, in <module>
+    bc_agent.train()
+  File "train_bc_w_lang.py", line 336, in train
+    self.process_data(self.single_episode)
+  File "train_bc_w_lang.py", line 140, in process_data
+    ep_state_tensor, ep_action_tensor = self.get_state_action_tensor(episode)
+  File "train_bc_w_lang.py", line 122, in get_state_action_tensor
+    self.get_state_tensor(episode, step)),
+  File "train_bc_w_lang.py", line 111, in get_state_tensor
+    instruction_tensor = self.get_text_embedding(episode['instruction']).cpu().reshape(-1)
+  File "train_bc_w_lang.py", line 99, in get_text_embedding
+    lang_embedding = self.llm_model(input_ids, attention_mask=attention_mask).last_hidden_state
+  File "/home/weird-lab/.local/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/weird-lab/anaconda3/envs/ltable/lib/python3.8/site-packages/transformers/models/distilbert/modeling_distilbert.py", line 583, in forward
+    return self.transformer(
+  File "/home/weird-lab/.local/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/weird-lab/anaconda3/envs/ltable/lib/python3.8/site-packages/transformers/models/distilbert/modeling_distilbert.py", line 359, in forward
+    layer_outputs = layer_module(
+  File "/home/weird-lab/.local/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/weird-lab/anaconda3/envs/ltable/lib/python3.8/site-packages/transformers/models/distilbert/modeling_distilbert.py", line 295, in forward
+    sa_output = self.attention(
+  File "/home/weird-lab/.local/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/weird-lab/anaconda3/envs/ltable/lib/python3.8/site-packages/transformers/models/distilbert/modeling_distilbert.py", line 216, in forward
+    k = shape(self.k_lin(key))  # (bs, n_heads, k_length, dim_per_head)
+  File "/home/weird-lab/anaconda3/envs/ltable/lib/python3.8/site-packages/transformers/models/distilbert/modeling_distilbert.py", line 209, in shape
+    return x.view(bs, -1, self.n_heads, dim_per_head).transpose(1, 2)
+RuntimeError: unknown parameter type

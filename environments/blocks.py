@@ -19,6 +19,7 @@ import enum
 import itertools
 
 import numpy as np
+import os
 
 
 class LanguageTableBlockVariants(enum.Enum):
@@ -84,30 +85,30 @@ def get_blocks_text_descriptions(mode):
 
 BLOCK_URDF_PATHS = collections.OrderedDict(
     # Red blocks.
-    red_moon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/red_moon.urdf',
-    red_cube='/home/weird-lab/traj_corr_lang/environments/assets/blocks/red_cube.urdf',
-    red_star='/home/weird-lab/traj_corr_lang/environments/assets/blocks/red_star.urdf',
-    red_pentagon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/red_pentagon.urdf',
+    red_moon=os.path.join(os.getcwd(), '../environments/assets/blocks/red_moon.urdf'),
+    red_cube=os.path.join(os.getcwd(), '../environments/assets/blocks/red_cube.urdf'),
+    red_star=os.path.join(os.getcwd(), '../environments/assets/blocks/red_star.urdf'),
+    red_pentagon=os.path.join(os.getcwd(), '../environments/assets/blocks/red_pentagon.urdf'),
     # Blue blocks.
-    blue_moon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/blue_moon.urdf',
-    blue_cube='/home/weird-lab/traj_corr_lang/environments/assets/blocks/blue_cube.urdf',
-    blue_star='/home/weird-lab/traj_corr_lang/environments/assets/blocks/blue_star.urdf',
-    blue_pentagon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/blue_pentagon.urdf',
+    blue_moon=os.path.join(os.getcwd(), '../environments/assets/blocks/blue_moon.urdf'),
+    blue_cube=os.path.join(os.getcwd(), '../environments/assets/blocks/blue_cube.urdf'),
+    blue_star=os.path.join(os.getcwd(), '../environments/assets/blocks/blue_star.urdf'),
+    blue_pentagon=os.path.join(os.getcwd(), '../environments/assets/blocks/blue_pentagon.urdf'),
     # Yellow blocks.
-    yellow_moon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/yellow_moon.urdf',
-    yellow_cube='/home/weird-lab/traj_corr_lang/environments/assets/blocks/yellow_cube.urdf',
-    yellow_star='/home/weird-lab/traj_corr_lang/environments/assets/blocks/yellow_star.urdf',
-    yellow_pentagon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/yellow_pentagon.urdf',
+    yellow_moon=os.path.join(os.getcwd(), '../environments/assets/blocks/yellow_moon.urdf'),
+    yellow_cube=os.path.join(os.getcwd(), '../environments/assets/blocks/yellow_cube.urdf'),
+    yellow_star=os.path.join(os.getcwd(), '../environments/assets/blocks/yellow_star.urdf'),
+    yellow_pentagon=os.path.join(os.getcwd(), '../environments/assets/blocks/yellow_pentagon.urdf'),
     # Green blocks.
-    green_moon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/green_moon.urdf',
-    green_cube='/home/weird-lab/traj_corr_lang/environments/assets/blocks/green_cube.urdf',
-    green_star='/home/weird-lab/traj_corr_lang/environments/assets/blocks/green_star.urdf',
-    green_pentagon='/home/weird-lab/traj_corr_lang/environments/assets/blocks/green_pentagon.urdf',
+    green_moon=os.path.join(os.getcwd(), '../environments/assets/blocks/green_moon.urdf'),
+    green_cube=os.path.join(os.getcwd(), '../environments/assets/blocks/green_cube.urdf'),
+    green_star=os.path.join(os.getcwd(), '../environments/assets/blocks/green_star.urdf'),
+    green_pentagon=os.path.join(os.getcwd(), '../environments/assets/blocks/green_pentagon.urdf'),
 )
 
 POLE_URDF_PATHS = collections.OrderedDict(
     # Purple Pole.
-    purple_pole='/home/weird-lab/traj_corr_lang/environments/assets/blocks/purple_pole.urdf',
+    purple_pole=os.path.join(os.getcwd(), '../environments/assets/blocks/purple_pole.urdf'),
 )
 
 # Use this just to define the observation space.
