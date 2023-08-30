@@ -24,7 +24,7 @@ torch.manual_seed(42)
 
 
 BC_DATA_FILENAME = "../pickle_files/bc_data.pickle"
-POLICY_FILE_PATH = "../models/bc_policy/bc_policy_w_lang_200_1024.pth"
+POLICY_FILE_PATH = "../models/bc_policy/bc_policy_w_lang_300_64.pth"
 PRESENTATION_VIDEOS_FILENAME = "../videos/presentation"
 
 LLM_NAME = "distilbert-base-uncased"
@@ -62,8 +62,8 @@ class BCAgent(nn.Module):
             self.episode_num = "All Trajectories are considered"
 
         input_size = self.get_policy_input_size()
-        self.h1_size = 1024
-        self.h2_size = 1024
+        self.h1_size = 64
+        self.h2_size = 64
         output_size = 9
         self.policy = nn.Sequential(
             nn.Linear(input_size, self.h1_size),
@@ -98,6 +98,7 @@ class BCAgent(nn.Module):
             input_ids = encoded_input['input_ids'].to(device)
             attention_mask = encoded_input['attention_mask'].to(device)
             lang_embedding = self.llm_model(input_ids, attention_mask=attention_mask).last_hidden_state
+            # check this
             lang_embedding = lang_embedding.mean(1)
             return lang_embedding
 
@@ -187,6 +188,8 @@ class BCAgent(nn.Module):
                 "num_trajs": len(self.custom_ds.keys()),
                 "h1 size": self.h1_size,
                 "h2_size": self.h2_size,
+                "noise_injection": False,
+                "model_file_name": POLICY_FILE_PATH,
             }
         )
 
@@ -375,6 +378,6 @@ if __name__=="__main__":
     )
 
     bc_agent = BCAgent(env, single_episode=False)
-    # bc_agent.train()
-    bc_agent.play_cloned_trajs(episode_num=0)
+    bc_agent.train()
+    # bc_agent.play_cloned_trajs(episode_num=300)
     

@@ -170,8 +170,8 @@ class CollectBCTrajs:
             start_idx = len(self.custom_dataset.keys())
             num_trajs = int(input("Enter the number of trajs you want to record: \n"))
             if self.one_task:
-                start_block = "blue_cube"
-                target_block = "yellow_pentagon"
+                start_block = "green_star"
+                target_block = "red_moon"
                 instruction =  self.env._reward_calculator._sample_instruction(start_block,
                                                                               target_block,
                                                                               self.env._blocks_on_table)
