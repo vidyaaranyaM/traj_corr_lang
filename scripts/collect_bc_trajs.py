@@ -28,20 +28,44 @@ DATASET_DIRS = {
     'language_table_blocktorelative_oracle_sim': 'gs://gresearch/robotics/language_table_blocktorelative_oracle_sim',
     'language_table_separate_oracle_sim': 'gs://gresearch/robotics/language_table_separate_oracle_sim',
 }
-BC_DATA_FILENAME = "../pickle_files/bc_data_one_task.pickle"
-BC_VIDEOS_FILENAME = "../videos/bc_videos/one_task"
+BC_DATA_FILENAME = "../pickle_files/bc_data_per_task.pickle"
+BC_VIDEOS_DIRNAME = "../videos/bc_videos_per_task"
 PAD_SA_LEN = 10
 SEED = 42
 EPS = 0.5
 
 
 class CollectBCTrajs:
-    def __init__(self, env, noise_injection=True, one_task=False) -> None:
+    def __init__(self, env, noise_injection=True) -> None:
+        self.num_tasks = 12
         self.env = env
         self.noise_inj = noise_injection
-        self.one_task = one_task
+        self.create_video_dirs()
+        self.create_start_target_dict()
         self.load_dataset()
         self.load_custom_dataset()
+    
+    def create_video_dirs(self):
+        for idx in range(self.num_tasks):
+            dir_path = BC_VIDEOS_DIRNAME + "/task_" + str(idx)
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+    
+    def create_start_target_dict(self):
+        self.start_target_dict = {
+            0: ("blue_cube", "yellow_pentagon"),
+            1: ("blue_cube", "green_star"),
+            2: ("blue_cube", "red_moon"),
+            3: ("yellow_pentagon", "blue_cube"),
+            4: ("yellow_pentagon", "green_star"),
+            5: ("yellow_pentagon", "red_moon"),
+            6: ("green_star", "blue_cube"),
+            7: ("green_star", "yellow_pentagon"),
+            8: ("green_star", "red_moon"),
+            9: ("red_moon", "blue_cube"),
+            10: ("red_moon", "yellow_pentagon"),
+            11: ("red_moon", "green_star"),
+        }
 
     def load_dataset(self):
         dataset_path = os.path.join(DATASET_DIRS[DATASET_NAME], DATASET_VERSION)
@@ -57,7 +81,6 @@ class CollectBCTrajs:
             self.custom_dataset = {}
     
     def save_trajs(self):
-        print("Saving Trajectories")
         with open(BC_DATA_FILENAME, 'wb') as file:
             pickle.dump(self.custom_dataset, file)
     
@@ -87,9 +110,10 @@ class CollectBCTrajs:
     def clear_trajs(self):
         self.custom_dataset = {}
         self.save_trajs()
-        video_dir = BC_VIDEOS_FILENAME
-        for file in os.listdir(video_dir):
-            os.remove(os.path.join(video_dir, file))
+        video_dir = BC_VIDEOS_DIRNAME
+        for root, _, files in os.walk(video_dir):
+            for name in files:
+                os.remove(os.path.join(root, name))
     
     def choose_delta_action(self, base_delta):
         if self.noise_inj:
@@ -155,40 +179,52 @@ class CollectBCTrajs:
                 actions_list.append(action)
                 frames.append(obs['rgb'])
             obs, _, _, _ = self.env.step(delta)
+    
+    def get_num_episodes(self, task):
+        if task not in self.custom_dataset:
+            return 0
+        return len(self.custom_dataset[task])
+    
+    def prompt_user_for_task(self):
+        for idx in range(self.num_tasks):
+            print(f"-----------Task_{idx}-----------")
+            start_block, target_block = self.start_target_dict[idx]
+            print(f"Starting block: {start_block}, Target block: {target_block}, Number of demos collected: {self.get_num_episodes('task' + str(idx))}")
+        task_idx = int(input("Enter what task you want to provide data for:\n"))
+        start_block, target_block = self.start_target_dict[task_idx]
+        return task_idx, start_block, target_block
 
     def collect_human_demos(self, replace=False, save_data=True):
         if not save_data:
             print("\nNote: You are not saving trajectories\n")
         if replace:
+            task_idx = int(input("Enter the id of task you want to replace:\n"))
             episode_num = int(input("Enter the id of episode you want to replace:\n"))
-            episode = list(self.custom_dataset.values())[episode_num]
+            episode = list(self.custom_dataset["task_" + str(task_idx)].values())[episode_num]
             instruction = episode['instruction']
             start_block = episode['start_block']
             target_block = episode['target_block']
             num_trajs = 1
         else:
-            start_idx = len(self.custom_dataset.keys())
+            task_idx, start_block, target_block = self.prompt_user_for_task()
             num_trajs = int(input("Enter the number of trajs you want to record: \n"))
-            if self.one_task:
-                start_block = "green_star"
-                target_block = "red_moon"
-                instruction =  self.env._reward_calculator._sample_instruction(start_block,
-                                                                              target_block,
-                                                                              self.env._blocks_on_table)
+        if ("task_" + str(task_idx)) not in self.custom_dataset:
+            self.custom_dataset["task_" + str(task_idx)] = {}
+        video_dir = BC_VIDEOS_DIRNAME + "/task_" + str(task_idx)
+        start_idx = len([file for file in os.listdir(video_dir)])
+
         ykey = ord('y')
         nkey = ord('n')
         count = 0
         flag = True
         while count < num_trajs:
             keys = self.env._pybullet_client.getKeyboardEvents()
-            
             if flag:
                 obs = self.env.reset()
                 if not replace:
-                    if not self.one_task:
-                        instruction = self.env._instruction_str
-                        start_block = self.env._reward_calculator._start_block
-                        target_block = self.env._reward_calculator._target_block
+                    instruction =  self.env._reward_calculator._sample_instruction(start_block,
+                                                                                   target_block,
+                                                                                   self.env._blocks_on_table)
                 print(f"\ninstruction: {instruction}")
                 print("press \"y\" to start recording trajectory or \"n\" to reset env \n")
                 flag = False
@@ -208,11 +244,11 @@ class CollectBCTrajs:
                     }
                     if save_data:
                         if replace:
-                            self.custom_dataset["episode_" + str(episode_num)] = episode_dict
-                            self.create_videos(frames, episode_num, instruction, BC_VIDEOS_FILENAME)
+                            self.custom_dataset["task_" + str(task_idx)]["episode_" + str(episode_num)] = episode_dict
+                            self.create_videos(frames, episode_num, instruction, video_dir)
                         else:
-                            self.custom_dataset["episode_" + str(count + start_idx)] = episode_dict
-                            self.create_videos(frames, count + start_idx, instruction, BC_VIDEOS_FILENAME)
+                            self.custom_dataset["task_" + str(task_idx)]["episode_" + str(count + start_idx)] = episode_dict
+                            self.create_videos(frames, count + start_idx, instruction, video_dir)
                     count += 1
 
             if nkey in keys and keys[nkey]&self.env._pybullet_client.KEY_WAS_TRIGGERED:
@@ -240,16 +276,20 @@ class CollectBCTrajs:
             self.env.step(action)
         return init_state
     
-    def delete_traj(self, episode_indices):
+    def delete_traj(self, task_id, episode_indices):
+        task = "task_" + str(task_id)
+        video_dir = BC_VIDEOS_DIRNAME + "/task_" + str(task_id)
         for idx in episode_indices:
             episode = "episode_" + str(idx)
-            if episode in self.custom_dataset:
-                del self.custom_dataset[episode]
-            video_file = os.path.join(BC_VIDEOS_FILENAME, "demo" + str(idx) + ".mp4")
+            if episode in self.custom_dataset[task]:
+                del self.custom_dataset[task][episode]
+                if not bool(self.custom_dataset[task]):
+                    del self.custom_dataset[task]
+            video_file = os.path.join(video_dir, "demo" + str(idx) + ".mp4")
             if os.path.exists(video_file):
                 os.remove(video_file)
         self.save_trajs()
-         
+
 
 if __name__=="__main__":
     env = language_table.LanguageTable(
@@ -258,5 +298,5 @@ if __name__=="__main__":
         control_frequency=10.0,
         render_mode="human"
     )
-    collect_trajs = CollectBCTrajs(env, noise_injection=True, one_task=True)
+    collect_trajs = CollectBCTrajs(env, noise_injection=True)
     collect_trajs.collect_human_demos(replace=False, save_data=True)
